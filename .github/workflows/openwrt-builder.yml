@@ -34,10 +34,10 @@ jobs:
 
     # 2. 深度清理磁盘空间 (关键步骤)
     # 编译非常消耗空间，必须先清理
-    #- name: Free Disk Space (深度清理磁盘)
-      #run: |
-        #echo "=== [清理前] 磁盘空间状态 ==="
-        #df -hT
+    - name: Free Disk Space (深度清理磁盘)
+      run: |
+        echo "=== [清理前] 磁盘空间状态 ==="
+        df -hT
         
         #echo "正在移除 Docker 镜像..."
         #docker rmi `docker images -q`
