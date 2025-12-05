@@ -392,6 +392,10 @@ jobs:
         # === 科学上网 (Kenzo源) ===
         echo "CONFIG_PACKAGE_luci-app-passwall=y" >> .config
         echo "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y" >> .config
         # HomeProxy 在 Kernel 5.4 (21.02) 上可能存在兼容性问题，建议优先用 Passwall
         
         # 如果仓库里有 diy-part2.sh 就执行
