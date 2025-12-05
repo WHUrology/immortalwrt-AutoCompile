@@ -97,7 +97,7 @@ jobs:
         echo "src-git packages https://github.com/immortalwrt/packages.git;openwrt-21.02" > feeds.conf.default
         echo "src-git luci https://github.com/immortalwrt/luci.git;openwrt-21.02" >> feeds.conf.default
         echo "src-git routing https://github.com/immortalwrt/routing.git;openwrt-21.02" >> feeds.conf.default
-        echo "src-git telephony https://github.com/immortalwrt/telephony.git;openwrt-21.02" >> feeds.conf.default
+
         
         # 2. 添加 Passwall 源 (使用 xiaorouji 官方源)
         echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> feeds.conf.default
@@ -117,9 +117,9 @@ jobs:
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
         echo "Deleting Rust-based packages..."
-        rm -rf feeds/passwall_packages/shadow-tls
-        rm -rf feeds/passwall_packages/hysteria
-        rm -rf feeds/passwall_packages/tuic-client
+        rm -rf feeds/passwall_packages/shadow-tls/
+        rm -rf feeds/passwall_packages/hysteria/
+        rm -rf feeds/passwall_packages/tuic-client/
         # 如果 sing-box 也报错 rust/host，把下面这行注释取消
         # rm -rf feeds/passwall_packages/sing-box
     - name: Install feeds
