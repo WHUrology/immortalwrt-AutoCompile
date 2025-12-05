@@ -115,7 +115,7 @@ jobs:
         
         # === 针对 Hanwckf 源码的 AX6000 配置 ===
         # 注意：Hanwckf 的 target 名称可能与官方不同，通常是 mt798x
-        echo "CONFIG_TARGET_mediatek=y" >> .config" >> .config
+        echo "CONFIG_TARGET_mediatek=y" >> .config
         echo "CONFIG_TARGET_mediatek_mt7986=y" >> .config
         echo "CONFIG_TARGET_MULTI_PROFILE=y" >> .config
         echo "CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_xiaomi_redmi-router-ax6000=y" >> .config
