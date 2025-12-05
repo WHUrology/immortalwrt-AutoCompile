@@ -34,33 +34,33 @@ jobs:
 
     # 2. 深度清理磁盘空间 (关键步骤)
     # 编译非常消耗空间，必须先清理
-    - name: Free Disk Space (深度清理磁盘)
-      run: |
-        echo "=== [清理前] 磁盘空间状态 ==="
-        df -hT
+    #- name: Free Disk Space (深度清理磁盘)
+      #run: |
+        #echo "=== [清理前] 磁盘空间状态 ==="
+        #df -hT
         
-        echo "正在移除 Docker 镜像..."
-        docker rmi `docker images -q`
+        #echo "正在移除 Docker 镜像..."
+        #docker rmi `docker images -q`
         
-        echo "正在移除预装的大型软件包 (Android SDK, DotNet, CodeQL)..."
-        sudo rm -rf \
-          /usr/share/dotnet \
-          /usr/local/lib/android \
-          /opt/ghc \
-          /opt/hostedtoolcache/CodeQL \
-          /usr/share/swift \
-          /usr/local/.ghcup \
-          /usr/lib/jvm \
-          /usr/local/share/powershell \
-          /usr/local/lib/node_modules
+        #echo "正在移除预装的大型软件包 (Android SDK, DotNet, CodeQL)..."
+        #sudo rm -rf \
+          #/usr/share/dotnet \
+          #/usr/local/lib/android \
+          #/opt/ghc \
+          #/opt/hostedtoolcache/CodeQL \
+          #/usr/share/swift \
+          #/usr/local/.ghcup \
+          #/usr/lib/jvm \
+          #/usr/local/share/powershell \
+          #/usr/local/lib/node_modules
           
-        echo "正在清理 APT 缓存..."
-        sudo -E apt-get -q purge azure-cli ghc* zulu* hhvm llvm* firefox google-chrome-stable microsoft-edge-stable dotnet* powershell openjdk* mysql* php* mongodb* moby* snapd* || true
-        sudo -E apt-get -y autoremove --purge
-        sudo -E apt-get clean
+        #echo "正在清理 APT 缓存..."
+        #sudo -E apt-get -q purge azure-cli ghc* zulu* hhvm llvm* firefox google-chrome-stable microsoft-edge-stable dotnet* powershell openjdk* mysql* php* mongodb* moby* snapd* || true
+        #sudo -E apt-get -y autoremove --purge
+        #sudo -E apt-get clean
         
-        echo "=== [清理后] 磁盘空间状态 ==="
-        df -hT
+        #echo "=== [清理后] 磁盘空间状态 ==="
+        #df -hT
 
     # 3. 初始化编译环境
     - name: Initialization environment
