@@ -54,13 +54,13 @@ jobs:
           #/usr/local/share/powershell \
           #/usr/local/lib/node_modules
           
-        #echo "正在清理 APT 缓存..."
-        #sudo -E apt-get -q purge azure-cli ghc* zulu* hhvm llvm* firefox google-chrome-stable microsoft-edge-stable dotnet* powershell openjdk* mysql* php* mongodb* moby* snapd* || true
-        #sudo -E apt-get -y autoremove --purge
-        #sudo -E apt-get clean
+        echo "正在清理 APT 缓存..."
+        sudo -E apt-get -q purge azure-cli ghc* zulu* hhvm llvm* firefox google-chrome-stable microsoft-edge-stable dotnet* powershell openjdk* mysql* php* mongodb* moby* snapd* || true
+        sudo -E apt-get -y autoremove --purge
+        sudo -E apt-get clean
         
-        #echo "=== [清理后] 磁盘空间状态 ==="
-        #df -hT
+        echo "=== [清理后] 磁盘空间状态 ==="
+        df -hT
 
     # 3. 初始化编译环境
     - name: Initialization environment
