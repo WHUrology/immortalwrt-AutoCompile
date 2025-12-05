@@ -1,31 +1,27 @@
-#
-# https://github.com/P3TERX/Actions-OpenWrt
-#
-# File: .github/workflows/openwrt-bulder.yml
-# Description: Build OpenWrt using GitHub Actions
-#
-# Copyright (c) 2019-2024 P3TERX <https://p3terx.com>
-#
-# This is free software, licensed under the MIT License.
-# See /LICENSE for more information.
-#
+# ==============================================================================
+# OpenWrt 构建工作流 (AX6000 定制版)
+# 基于 P3TERX 的 Actions-OpenWrt 修改
+# ==============================================================================
 
-name: immortalwrt-mt7986 openwrt-21.02 Builder
+name: Build Xiaomi AX6000 (Hanwckf 21.02)
 
+# 触发器配置
 on:
   repository_dispatch:
-  workflow_dispatch:
+  workflow_dispatch: # 手动触发按钮
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
 
+# 环境变量设置
 env:
+  # 注意：这里使用的是 hanwckf 的源码 (21.02版本，闭源驱动，极度稳定)
+  # 如果你想要 24.10，需要改回 https://github.com/immortalwrt/immortalwrt 和 master 分支
   REPO_URL: https://github.com/hanwckf/immortalwrt-mt798x
   REPO_BRANCH: openwrt-21.02
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
-  DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part2.sh
-  UPLOAD_BIN_DIR: false
-  UPLOAD_FIRMWARE: true
-  UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
 
 jobs:
@@ -33,110 +29,163 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    # 1. 检出当前仓库代码
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
 
+    # 2. 初始化编译环境
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
+        # 清理旧的依赖和 Docker 释放空间
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
         sudo docker image prune --all --force
+        
+        # 安装编译依赖
         sudo -E apt-get -qq update
         sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+        
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
 
+    # 3. 克隆源码 (已修复路径问题，直接克隆到工作区)
     - name: Clone source code
-      working-directory: /workdir
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+        # 记录当前源码版本，方便排查
+        cd openwrt && git log -1
 
+    # 4. 加载自定义 Feeds (插件源)
     - name: Load custom feeds
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-        chmod +x $DIY_P1_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH
+        # 添加 kenzok8 源以支持 Passwall/HomeProxy
+        # echo "src-git kenzo https://github.com/kenzok8/small-package" >> feeds.conf.default
+        
+        # 如果仓库里有 diy-part1.sh 就执行，没有就跳过
+        if [ -f $GITHUB_WORKSPACE/diy-part1.sh ]; then
+          chmod +x $GITHUB_WORKSPACE/diy-part1.sh
+          /bin/bash $GITHUB_WORKSPACE/diy-part1.sh
+        fi
 
+    # 5. 更新并安装插件
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    - name: Load custom configuration
+    # 6. 生成配置文件 (核心步骤：自动生成 .config)
+    # 这里替代了上传 .config 文件的做法，更加自动化
+    - name: Generate configuration file
       run: |
-        [ -e files ] && mv files openwrt/files
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        chmod +x $DIY_P2_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P2_SH
+        
+        # === 针对 Hanwckf 源码的 AX6000 配置 ===
+        # 注意：Hanwckf 的 target 名称可能与官方不同，通常是 mt798x
+        echo "CONFIG_TARGET_mt798x=y" > .config
+        echo "CONFIG_TARGET_mt798x_mt7986=y" >> .config
+        echo "CONFIG_TARGET_mt798x_mt7986_DEVICE_xiaomi_redmi-router-ax6000=y" >> .config
+        
+        # === 常用插件 ===
+        echo "CONFIG_PACKAGE_luci=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-ttyd=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-autoreboot=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-ddns=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-upnp=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-filebrowser=y" >> .config
+        
+        # === VPN & KMS ===
+        echo "CONFIG_PACKAGE_luci-app-vlmcsd=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-ipsec-vpnd=y" >> .config
+        
+        # === 科学上网 (Kenzo源) ===
+        echo "CONFIG_PACKAGE_luci-app-passwall=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=y" >> .config
+        # HomeProxy 在 Kernel 5.4 (21.02) 上可能存在兼容性问题，建议优先用 Passwall
+        
+        # 如果仓库里有 diy-part2.sh 就执行
+        if [ -f $GITHUB_WORKSPACE/diy-part2.sh ]; then
+          chmod +x $GITHUB_WORKSPACE/diy-part2.sh
+          /bin/bash $GITHUB_WORKSPACE/diy-part2.sh
+        fi
+        
+        # 生成完整配置
+        make defconfig
 
+    # 7. 下载依赖包
     - name: Download package
       id: package
       run: |
         cd openwrt
-        make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
+    # 8. 编译固件
     - name: Compile the firmware
       id: compile
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
+        # 尝试多线程编译，失败则回退单线程并输出日志
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
+        
+        # 提取设备名称和时间，用于重命名固件
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
+    # 9. 检查磁盘空间 (编译后)
     - name: Check space usage
       if: (!cancelled())
       run: df -hT
 
+    # 10. 上传 bin 目录 (可选，包含所有 ipk 文件)
+    # 如果不需要 ipk 文件，可以将 if 中的 true 改为 false
     - name: Upload bin directory
-      uses: actions/upload-artifact@main
-      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
+      uses: actions/upload-artifact@v4
+      if: steps.compile.outputs.status == 'success'
       with:
         name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: openwrt/bin
 
+    # 11. 整理固件文件 (只保留 img/bin 固件)
     - name: Organize files
       id: organize
-      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+      if: steps.compile.outputs.status == 'success'
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
+    # 12. 上传固件到 Artifacts (可在 Actions 页面下载)
     - name: Upload firmware directory
-      uses: actions/upload-artifact@main
-      if: steps.organize.outputs.status == 'success' && !cancelled()
+      uses: actions/upload-artifact@v4
+      if: steps.organize.outputs.status == 'success'
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
+    # 13. 生成 Release 标签
     - name: Generate release tag
       id: tag
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: steps.compile.outputs.status == 'success'
       run: |
         echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
         touch release.txt
-        [ ${UPLOAD_GOFILE} = true && ${{ steps.gofile.outputs.url }} ] && echo "🔗 [GoFile](${{ steps.gofile.outputs.url }})" >> release.txt
+        echo "Build success!" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
+    # 14. 发布到 Releases 页面
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@master
-      if: steps.tag.outputs.status == 'success' && !cancelled()
+      uses: softprops/action-gh-release@v2
+      if: steps.tag.outputs.status == 'success'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -144,15 +193,16 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
+    # 15. 删除旧的工作流记录
     - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
+      uses: Mattraks/delete-workflow-runs@v2
       with:
         retain_days: 0
         keep_minimum_runs: 2
 
+    # 16. 删除旧的 Releases
     - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@master
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      uses: dev-drprasad/delete-older-releases@v0.3.3
       with:
         keep_latest: 3
         delete_tags: true
