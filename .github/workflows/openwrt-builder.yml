@@ -103,7 +103,12 @@ jobs:
     # 6. 更新并安装插件
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
-
+        echo "Deleting Rust-based packages..."
+        rm -rf feeds/passwall_packages/shadow-tls
+        rm -rf feeds/passwall_packages/hysteria
+        rm -rf feeds/passwall_packages/tuic-client
+        # 如果 sing-box 也报错 rust/host，把下面这行注释取消
+        rm -rf feeds/passwall_packages/sing-box
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
