@@ -108,7 +108,7 @@ jobs:
         rm -rf feeds/passwall_packages/hysteria
         rm -rf feeds/passwall_packages/tuic-client
         # 如果 sing-box 也报错 rust/host，把下面这行注释取消
-        rm -rf feeds/passwall_packages/sing-box
+        # rm -rf feeds/passwall_packages/sing-box
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
