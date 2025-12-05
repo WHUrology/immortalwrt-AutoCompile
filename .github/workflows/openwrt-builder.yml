@@ -91,14 +91,27 @@ jobs:
     - name: Load custom feeds
       run: |
         cd openwrt
-        # 添加 kenzok8 源以支持 Passwall/HomeProxy
-        # echo "src-git kenzo https://github.com/kenzok8/small-package" >> feeds.conf.default
+        
+        # === 强制重写 feeds.conf.default ===
+        # 1. 恢复 ImmortalWrt 21.02 官方基础源 (修复 libpam, luci-base, lm-sensors 缺失问题)
+        echo "src-git packages https://github.com/immortalwrt/packages.git;openwrt-21.02" > feeds.conf.default
+        echo "src-git luci https://github.com/immortalwrt/luci.git;openwrt-21.02" >> feeds.conf.default
+        echo "src-git routing https://github.com/immortalwrt/routing.git;openwrt-21.02" >> feeds.conf.default
+        echo "src-git telephony https://github.com/immortalwrt/telephony.git;openwrt-21.02" >> feeds.conf.default
+        
+        # 2. 添加 Passwall 源 (使用 xiaorouji 官方源)
+        echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> feeds.conf.default
+        echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> feeds.conf.default
+        
+        echo "--- Feeds 配置文件预览 ---"
+        cat feeds.conf.default
+        
         
         # 如果仓库里有 diy-part1.sh 就执行，没有就跳过
-        if [ -f $GITHUB_WORKSPACE/diy-part1.sh ]; then
-          chmod +x $GITHUB_WORKSPACE/diy-part1.sh
-          /bin/bash $GITHUB_WORKSPACE/diy-part1.sh
-        fi
+        # if [ -f $GITHUB_WORKSPACE/diy-part1.sh ]; then
+         # chmod +x $GITHUB_WORKSPACE/diy-part1.sh
+         # /bin/bash $GITHUB_WORKSPACE/diy-part1.sh
+       # fi
 
     # 6. 更新并安装插件
     - name: Update feeds
