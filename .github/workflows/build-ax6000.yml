@@ -1,10 +1,10 @@
-name: Build Xiaomi AX6000 OpenWrt 24.10 (Debug Mode)
+name: Build Xiaomi AX6000 OpenWrt 24.10 (Fix Path)
 
 on:
   workflow_dispatch:
     inputs:
       ssh:
-        description: '是否开启 SSH (用于交互式调试)'
+        description: '是否开启 SSH'
         required: false
         default: 'false'
 
@@ -18,11 +18,9 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    # 1. 检出代码
     - name: Checkout
       uses: actions/checkout@v4
 
-    # 2. 初始化环境并输出调试信息
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -37,30 +35,26 @@ jobs:
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
-        mkdir -p workdir
-        sudo chown $USER:$GROUP workdir
+        # 修正1：不再创建 workdir，直接在当前环境操作
         
         echo "--- 系统空间检查 (清理后) ---"
         df -hT
 
-    # 3. 克隆源码
     - name: Clone source code
-      working-directory: workdir
+      # 修正2：移除 working-directory，直接克隆到当前目录
       run: |
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         echo "Source code cloned. Current commit:"
         cd openwrt && git log -1
 
-    # 4. 加载 Feeds
     - name: Load custom feeds
       run: |
         cd openwrt
+        # 现在 cd openwrt 会成功，因为它就在根目录下
         echo "src-git kenzo https://github.com/kenzok8/small-package" >> feeds.conf.default
         echo "--- Feeds configuration ---"
         cat feeds.conf.default
 
-    # 5. 更新 Feeds
     - name: Update feeds
       run: |
         cd openwrt
@@ -68,7 +62,6 @@ jobs:
         ./scripts/feeds install -a
         echo "Feeds updated and installed."
 
-    # 6. 生成并检查配置文件 (关键调试步骤)
     - name: Generate configuration file
       run: |
         cd openwrt
@@ -106,11 +99,9 @@ jobs:
         make defconfig
         
         echo "--- 检查生成的 .config (前200行) ---"
-        # 打印 config 以便检查是否缺漏，或者是否有依赖冲突导致被自动取消
         cat .config | head -n 200
         echo "..."
 
-    # 7. 下载包并报告错误
     - name: Download package
       run: |
         cd openwrt
@@ -121,24 +112,16 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-    # 8. 编译 (包含详细错误输出逻辑)
     - name: Compile the firmware
       id: compile
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
         
-        # 逻辑说明：
-        # 1. 尝试多线程编译 (快)
-        # 2. 失败后尝试单线程编译 (慢，但能避免并发错误)
-        # 3. 再次失败则单线程 + 详细日志 (V=s)，这是定位错误的最终手段
-        
         make -j$(nproc) || make -j1 || make -j1 V=s
         
         echo "status=success" >> $GITHUB_OUTPUT
 
-    # 9. [出错时触发] 上传调试信息
-    # 如果上面的编译步骤失败，此步骤将自动执行
     - name: Upload debug info on failure
       if: failure()
       uses: actions/upload-artifact@v4
@@ -149,7 +132,6 @@ jobs:
           openwrt/feeds.conf.default
           openwrt/tmp/
     
-    # 10. 整理固件
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success'
@@ -159,7 +141,6 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
-    # 11. 上传成功固件
     - name: Upload firmware directory
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success'
@@ -167,7 +148,6 @@ jobs:
         name: OpenWrt_firmware${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
-    # 12. 清理记录
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
       with:
