@@ -80,16 +80,25 @@ jobs:
 
     # 6. 更新 Feeds (修复了语法错误)
     - name: Update feeds
-      # ▼▼▼ [修复2] 必须加这个竖线 |，否则下面的 rm 命令不会执行 ▼▼▼
       run: |
         cd openwrt
+        
+        # 先更新源
         ./scripts/feeds update -a
         
+        # === 删除不兼容的 Rust 插件 (Hanwckf 21.02 专用) ===
         echo "Deleting incompatible packages..."
         rm -rf feeds/passwall_packages/shadow-tls
         rm -rf feeds/passwall_packages/hysteria
         rm -rf feeds/passwall_packages/tuic-client
         rm -rf feeds/passwall_packages/sing-box
+        
+        # === 关键：安装源 ===
+        # 之前报错 libpam not exist 就是因为这里可能没执行成功
+        ./scripts/feeds install -a
+        
+        # 再次强制安装 libpam 和 luci-base 以防万一
+        ./scripts/feeds install libpam luci-base || true
 
     # 7. 安装 Feeds
     - name: Install feeds
