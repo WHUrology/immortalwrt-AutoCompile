@@ -105,34 +105,65 @@ jobs:
       run: cd openwrt && ./scripts/feeds install -a
 
     # 8. 生成配置
-    - name: Generate configuration file
-      run: |
-        cd openwrt
+    # - name: Generate configuration file
+      # run: |
+        # cd openwrt
 
-        # === 加载 Hanwckf AX6000 官方配置 ===
-        cat defconfig/mt7986-ax6000.config > .config
+        # === 加载 Hanwckf AX6000 官方配置 ===（会生成很多固件，包括glinet、jdcloud、ruijie、tplink等）
+        # cat defconfig/mt7986-ax6000.config > .config
         
         # === 追加自定义插件 ===
-        echo "CONFIG_PACKAGE_luci=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-ttyd=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-autoreboot=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-ddns=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-upnp=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-filebrowser=y" >> .config
+        # echo "CONFIG_PACKAGE_luci=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-ttyd=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-autoreboot=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-ddns=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-upnp=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-filebrowser=y" >> .config
         
-        echo "CONFIG_PACKAGE_luci-app-vlmcsd=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-ipsec-vpnd=y" >> .config
-        echo "CONFIG_PACKAGE_strongswan-default=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-vlmcsd=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-ipsec-vpnd=y" >> .config
+        # echo "CONFIG_PACKAGE_strongswan-default=y" >> .config
         
-        echo "CONFIG_PACKAGE_luci-app-passwall=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-passwall=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y" >> .config
         
         # 生成完整配置
-        make defconfig
+        # make defconfig
 
+      # 加载自定义配置 (使用仓库根目录的 .config)如果启用这种方式，那就需要注释掉上面生成.config的代码。
+    - name: Load custom configuration
+      run: |
+        # 定义源文件路径 ($GITHUB_WORKSPACE 指代仓库根目录)
+        CUSTOM_CONFIG_FILE="$GITHUB_WORKSPACE/.config"
+        
+        cd openwrt
+        
+        # === 1. 检查并应用自定义 .config ===
+        if [ -f "$CUSTOM_CONFIG_FILE" ]; then
+          echo "✅ 检测到自定义 .config 文件，正在应用..."
+          cp "$CUSTOM_CONFIG_FILE" .config
+          
+          echo "--- 配置文件内容预览 (前20行) ---"
+          head -n 20 .config
+        else
+          echo "❌ 严重错误：在仓库根目录未找到 .config 文件！"
+          echo "请确保你已经将 .config 文件上传到了 Github 仓库。"
+          exit 1
+        fi
+        
+        # === 2. 执行 diy-part2.sh (如果存在) ===
+        # 通常用于修改 IP 地址、密码等
+        if [ -f $GITHUB_WORKSPACE/diy-part2.sh ]; then
+          chmod +x $GITHUB_WORKSPACE/diy-part2.sh
+          /bin/bash $GITHUB_WORKSPACE/diy-part2.sh
+        fi
+        
+        # === 3. 补全依赖 (至关重要) ===
+        # 这会将简略的 .config 扩展为完整的编译配置
+        make defconfig
     # 9. 下载包
     - name: Download package
       run: |
