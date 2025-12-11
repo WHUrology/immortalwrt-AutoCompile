@@ -79,7 +79,10 @@ jobs:
     - name: Load custom feeds (加载插件源)
       run: |
         cd openwrt
+        # 号称最全的软件包源
         echo "src-git kenzo https://github.com/kenzok8/small-package" >> feeds.conf.default
+        # 跟openclash类似的软件源Nikki
+        echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> "feeds.conf.default"
         echo "--- Feeds configuration ---"
         cat feeds.conf.default
 
@@ -119,10 +122,10 @@ jobs:
         echo "CONFIG_PACKAGE_strongswan-default=y" >> .config
         echo "CONFIG_PACKAGE_luci-app-vlmcsd=y" >> .config
         
-        # 科学上网 (注意：HomeProxy 依赖 Rust，极度消耗空间)
-        echo "CONFIG_PACKAGE_luci-app-passwall=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=y" >> .config
-        echo "CONFIG_PACKAGE_luci-app-homeproxy=y" >> .config
+        # 科学上网 (注意：HomeProxy 依赖 Rust，极度消耗空间)现在弃用passwall，改用openclash或者nikki
+        # echo "CONFIG_PACKAGE_luci-app-passwall=y" >> .config
+        # echo "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
         echo "CONFIG_PACKAGE_luci-app-openclash=y" >> .config
         
         # 工具
