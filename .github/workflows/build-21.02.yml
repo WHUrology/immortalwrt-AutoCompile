@@ -71,10 +71,12 @@ jobs:
         echo "src-git luci https://github.com/immortalwrt/luci.git;openwrt-21.02" >> feeds.conf.default
         echo "src-git routing https://github.com/immortalwrt/routing.git;openwrt-21.02" >> feeds.conf.default
 
-        # === 2. 添加 Passwall 源 ===
-        echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> feeds.conf.default
-        echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> feeds.conf.default
-        
+        # === 2. 添加 Passwall 源 ===【弃用passwall后这里就可以注释掉了】
+        # echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> feeds.conf.default
+        # echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> feeds.conf.default
+    - name: Replace opkg source to domestic
+      run: |
+        sed -i 's|https://downloads.openwrt.org|https://downloads.immortalwrt.org|g' feeds.conf.default     
         echo "--- Feeds 预览 ---"
         cat feeds.conf.default
 
@@ -87,11 +89,11 @@ jobs:
         ./scripts/feeds update -a
         
         # === 删除不兼容的 Rust 插件 (Hanwckf 21.02 专用) ===
-        echo "Deleting incompatible packages..."
-        rm -rf feeds/passwall_packages/shadow-tls
-        rm -rf feeds/passwall_packages/hysteria
-        rm -rf feeds/passwall_packages/tuic-client
-        rm -rf feeds/passwall_packages/sing-box
+        # echo "Deleting incompatible packages..."
+        # rm -rf feeds/passwall_packages/shadow-tls
+        # rm -rf feeds/passwall_packages/hysteria
+        # rm -rf feeds/passwall_packages/tuic-client
+        # rm -rf feeds/passwall_packages/sing-box
         
         # === 关键：安装源 ===
         # 之前报错 libpam not exist 就是因为这里可能没执行成功
@@ -109,7 +111,7 @@ jobs:
       # run: |
         # cd openwrt
 
-        # === 加载 Hanwckf AX6000 官方配置 ===（会生成很多固件，包括glinet、jdcloud、ruijie、tplink等）
+        # === 加载 Hanwckf AX6000 官方配置 ===（不注释掉这一行会生成很多固件，包括glinet、jdcloud、ruijie、tplink等）
         # cat defconfig/mt7986-ax6000.config > .config
         
         # === 追加自定义插件 ===
