@@ -76,7 +76,8 @@ jobs:
         # echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> feeds.conf.default
     - name: Replace opkg source to domestic
       run: |
-        sed -i 's|https://downloads.openwrt.org|https://downloads.immortalwrt.org|g' feeds.conf.default     
+        sed -i 's|https://downloads.openwrt.org|https://downloads.immortalwrt.org|g' feeds.conf.default
+        sed -i 's|https://mirrors.vsean.net/openwrt|https://downloads.immortalwrt.org|g' feeds.conf.default
         echo "--- Feeds 预览 ---"
         cat feeds.conf.default
 
