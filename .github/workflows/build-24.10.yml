@@ -79,6 +79,8 @@ jobs:
     - name: Load custom feeds (加载插件源)
       run: |
         cd openwrt
+        # 添加最新 mt76驱动 feed 到 feeds.conf.default（如果已存在，会追加）
+        echo "src-git mt76 https://github.com/openwrt/mt76.git^master" >> feeds.conf.default
         # 号称最全的软件包源
         echo "src-git kenzo https://github.com/kenzok8/small-package" >> feeds.conf.default
         # 跟openclash类似的软件源Nikki
@@ -154,7 +156,67 @@ jobs:
         
         echo "=== [下载完成后] 磁盘空间状态 ==="
         df -hT
+    - name: Create and customize wireless config file  # 创建并自定义 wireless 文件，默认开启 WiFi 并应用 mt76 优化
+      run: |
+        # 进入源码目录（如果不在其中）
+        # cd openwrt
+    
+        # 创建目录（如果不存在）
+        mkdir -p package/base-files/files/etc/config
+    
+        # 创建 wireless 文件并写入优化配置（基于最新 mt76 驱动）
+        cat << EOF > package/base-files/files/etc/config/wireless
+        config wifi-device 'radio0'  # 2.4GHz 接口（开源 mt76 驱动）
+            option type 'mac80211'   # 开源驱动类型
+            option path '1e140000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0'  # AX6000 的 2.4GHz 路径（从 dts 确认）
+            option band '2.4g'
+            option channel 'auto'    # 自动频道，或固定如 '6' 避免干扰
+            option htmode 'HE40'     # HE40/HE20 优化 WiFi 6 吞吐（HE20 更稳定）
+            option txpower '20'      # 传输功率（dBm），默认 20-23，根据法规调整
+            option country 'CN'      # 国家码，替换为您所在地区（避免 DFS 问题）
+            option disabled '0'      # 0 = 默认开启
+            option noscan '1'        # 禁用扫描，提升启动速度
+            option cell_density '0'  # 单元密度 0（禁用），优化高密度环境
 
+        config wifi-iface 'default_radio0'
+            option device 'radio0'
+            option network 'lan'
+            option mode 'ap'
+            option ssid 'RockyDokey'  # 默认 SSID，可自定义
+            option encryption 'psk2+ccmp'  # WPA2+AES，提升安全
+            option key ''  # 默认密码，可自定义
+            option ieee80211r '1'    # 启用快速漫游（802.11r）
+            option mobility_domain '4F57'  # 自定义域
+            option ft_over_ds '1'    # FT over DS 支持
+            option ft_psk_generate_local '1'  # 本地生成 PSK
+
+        config wifi-device 'radio1'  # 5GHz 接口
+            option type 'mac80211'
+            option path '1e140000.pcie/pci0000:00/0000:00:01.0/0000:02:00.0'  # AX6000 的 5GHz 路径
+            option band '5g'
+            option channel 'auto'    # 自动频道，或固定如 '36'（低频道避免干扰）
+            option htmode 'HE80'     # HE80/HE160 优化高吞吐（HE40 更兼容）
+            option txpower '23'      # 更高功率，提升信号（合规检查）
+            option country 'CN'
+            option disabled '0'      # 默认开启
+            option noscan '1'
+            option cell_density '0'
+
+        config wifi-iface 'default_radio1'
+            option device 'radio1'
+            option network 'lan'
+            option mode 'ap'
+            option ssid 'RockyDokey_5G'
+            option encryption 'psk2+ccmp'
+            option key ''
+            option ieee80211r '1'
+            option mobility_domain '4F57'
+            option ft_over_ds '1'
+            option ft_psk_generate_local '1'
+        EOF
+
+        # 确保权限正确
+        chmod 644 package/base-files/files/etc/config/wireless
     # 9. 编译固件
     - name: Compile the firmware (开始编译)
       id: compile
