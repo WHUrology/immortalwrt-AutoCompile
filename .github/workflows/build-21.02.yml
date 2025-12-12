@@ -74,10 +74,10 @@ jobs:
         # === 2. 添加 Passwall 源 ===【弃用passwall后这里就可以注释掉了】
         # echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> feeds.conf.default
         # echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> feeds.conf.default
-    - name: Replace opkg source to domestic
-      run: |
-        sed -i 's|https://downloads.openwrt.org|https://downloads.immortalwrt.org|g' feeds.conf.default
-        sed -i 's|https://mirrors.vsean.net/openwrt|https://downloads.immortalwrt.org|g' feeds.conf.default
+    # - name: Replace opkg source to domestic
+      # run: |
+        # sed -i 's|https://downloads.openwrt.org|https://downloads.immortalwrt.org|g' feeds.conf.default
+        # sed -i 's|https://mirrors.vsean.net/openwrt|https://downloads.immortalwrt.org|g' feeds.conf.default
         echo "--- Feeds 预览 ---"
         cat feeds.conf.default
 
