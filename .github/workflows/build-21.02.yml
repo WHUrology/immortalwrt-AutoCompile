@@ -78,8 +78,8 @@ jobs:
       # run: |
         # sed -i 's|https://downloads.openwrt.org|https://downloads.immortalwrt.org|g' feeds.conf.default
         # sed -i 's|https://mirrors.vsean.net/openwrt|https://downloads.immortalwrt.org|g' feeds.conf.default
-        echo "--- Feeds 预览 ---"
-        cat feeds.conf.default
+        # echo "--- Feeds 预览 ---"
+        # cat feeds.conf.default
 
     # 6. 更新 Feeds (修复了语法错误)
     - name: Update feeds
